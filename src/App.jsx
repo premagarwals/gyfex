@@ -198,7 +198,7 @@ const App = () => {
 
 
   //This will be be set by fetchBreadth function, which will run at start
-  const [breadths, setBreadths] = useState([]); 
+  const [breadths, setBreadths] = useState([]);
 
   //You go to ERP/Academics/Subjects/Breadth_list_for_current_semester
   //and you will see multiple breadth there...
@@ -212,11 +212,11 @@ const App = () => {
       const now = new Date();
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth();
-  
+
       const session = currentMonth >= 4 ?
-        `${currentYear}-${currentYear + 1}` : 
+        `${currentYear}-${currentYear + 1}` :
         `${currentYear - 1}-${currentYear}`;
-  
+
       const semester = (currentMonth >= 4 && currentMonth <= 10) ?
         'AUTUMN' :
         'SPRING';
@@ -234,25 +234,25 @@ const App = () => {
           }),
           credentials: 'include',
         });
-  
+
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
-  
+
         const htmlText = await response.text();
-  
+
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlText, 'text/html');
-  
+
         const table = doc.getElementById('display_tab');
         const rows = table.querySelectorAll('tr');
         const subjects = [];
-  
+
         for (let i = 1; i < rows.length; i++) {
           const cells = rows[i].querySelectorAll('td');
-  
+
           if (cells.length < 9) continue;
-  
+
           const subjectNo = cells[0].textContent.trim();
           const subjectName = cells[1].textContent.trim();
           const ltP = cells[2].textContent.trim();
@@ -262,7 +262,7 @@ const App = () => {
           const offeredBy = cells[6].textContent.trim();
           const slot = cells[7].textContent.trim().slice(1, -1);
           const room = cells[8].textContent.trim();
-  
+
           const subject = {
             id: subjectNo,
             name: subjectName,
@@ -276,10 +276,10 @@ const App = () => {
             slot: slot,
             room: room,
           };
-  
+
           subjects.push(subject);
         }
-  
+
         setBreadths(subjects);
       } catch (error) {
         console.error('Error fetching or processing data:', error);
@@ -361,6 +361,12 @@ const App = () => {
         ))}
 
       </div>
+
+      {/* A tiny disclaimer footer */}
+      <div className='w-full h-auto bg-slate-600 m-0 p-4 text-green-200 text-center text-sm'>
+        <p className='font-bold mb-2'>Important Note:</p> The data shown here is simplified to avoid inconveniences. Other subjects may <strong>not</strong> clash but are excluded due to ERP limitations. Users should not fully rely on this tool and are advised to manually verify the schedule to avoid missing any opportunities. We aren’t responsible for any issues.
+      </div>
+
     </div>
   )
 }
