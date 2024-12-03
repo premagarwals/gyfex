@@ -60,6 +60,8 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
+![screenshot.png](assets/screenshot.png)
+
 ## Acknowledgements
 
 GYFEx was inspired by GYFE. While GYFE offers powerful features, this extension was created for users who prefer not to log in or share personal credentials.
