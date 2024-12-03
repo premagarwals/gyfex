@@ -1,7 +1,7 @@
 
 # GYFEx - Get Your Freaking Elective Extension
 
-GYFEx (Get Your Freakking Elective Extension) is a lightweight, privacy-focused browser extension inspired by [GYFE](https://github.com/metakgp/gyfe) . Some users, who don't feel comfortable entering credentials in the [GYFE Website](gyfe.metakgp.org), can try out this browser extension that requires no credential. Still, I highly encourage you to use [GYFE](gyfe.metakgp.org), which lets you download excel files for both depth and breadth, along with subjects to persue minor.
+GYFEx (Get Your Freakking Elective Extension) is a lightweight, privacy-focused browser extension inspired by [GYFE](https://github.com/metakgp/gyfe) . Some users, who don't feel comfortable entering credentials in the [GYFE Website](https://gyfe.metakgp.org), can try out this browser extension that requires no credential. Still, I highly encourage you to use [GYFE](https://gyfe.metakgp.org), which lets you download excel files for both depth and breadth, along with subjects to persue minor.
 
 ---
 
