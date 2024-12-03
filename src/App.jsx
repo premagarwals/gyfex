@@ -109,6 +109,92 @@ const App = () => {
 
 
 
+  //This will be be updated by fetchAndPopulateSlots function, which will run if value of coreCourses is changed
+  const [slots, setSlots] = useState([]);
+  //This is mapping of lab slots clashing with normal slots
+  const overlaps = {
+    "J": ["H3", "U3", "U4"],
+    "K": ["D2", "D3", "D4", "A3"],
+    "L": ["U3", "U4", "H2", "H3"],
+    "M": ["C4", "E3", "E4", "G3"],
+    "N": ["I2", "V2", "V3", "V4"],
+    "O": ["E2", "E3", "E4", "F2", "F3", "F4"],
+    "P": ["V3", "V4", "I2"],
+    "Q": ["C3", "C4", "B3", "D3", "D4"],
+    "R": ["F3", "F4", "G3", "E3", "E4"],
+    "X": ["X4"]
+  }
+
+  //You go to ERP/Academics/Time_Table/Subject_List_with_time_table_slots
+  //and you will see course code to slots mapping...
+  //This function uses that data to find the slots of core courses and labs
+  //This function also adds the slots clashing with labs using "overlaps"
+  useEffect(() => {
+    const fetchAndPopulateSlots = async () => {
+      try {
+        const uniquePrefixes = [...new Set(coreCourses.map(code => code.slice(0, 2)))];
+        const allSlots = [];
+
+        for (const dept of uniquePrefixes) {
+          const response = await fetch(`https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept=${dept}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ /* Currently nothing to add here */ }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.text();
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(data, 'text/html');
+
+          // Parsing the table to get slot data
+          const tableRows = Array.from(doc.querySelectorAll('#disptab tr')).slice(2); 
+          const newSlots = [];
+
+          tableRows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length > 0) {
+              const subjectNo = cells[0]?.textContent.trim();
+              const slotString = cells[5]?.textContent.trim();
+
+              if (coreCourses.includes(subjectNo)) {
+                const slotsArray = slotString.split(',');
+                newSlots.push(...slotsArray);
+              }
+            }
+          });
+
+          allSlots.push(...newSlots);
+        }
+        let optimalSlots = new Set();
+        allSlots.forEach(slot => {
+          if (slot.length > 2) {
+            optimalSlots.add(slot.substring(0, 2));
+          }
+          else {
+            optimalSlots.add(slot);
+          }
+          if (overlaps[slot]) {
+            overlaps[slot].forEach(relative => optimalSlots.add(relative));
+          }
+        });
+        setSlots(Array.from(optimalSlots));
+
+      } catch (error) {
+        console.error("Error fetching or processing data:", error);
+      }
+    };
+
+    fetchAndPopulateSlots();
+  }, [coreCourses]);
+
+
+
   return (
     <div className="bg-green-100 h-full w-screen relative overflow-x-hidden">
 
@@ -132,6 +218,15 @@ const App = () => {
         <ul className='bg-green-200 flex flex-wrap gap-0 items-center m-2 justify-center'>
           {coreCourses.map((subno, index) => (
             <li className='m-2 p-2 text-xs bg-gradient-to-br from-green-400 to-green-300 rounded px-4 text-green-600 border-green-400 border-b-2 border-r-2 shadow-xl hover:rotate-2 hover:scale-105 transition-all cursor-pointer' key={index}>{subno}</li>
+          ))}
+        </ul>
+
+        {/* Show clashable slots */}
+        <p className='text-slate-600 text-sm mt-3 font-semibold text-center'>Potentially Clashable Slots:</p>
+        <p className='text-green-400 text-xs font-semibold text-center tracking-tight'>(As per ERP)</p>
+        <ul className='bg-green-200 flex flex-wrap gap-1 items-center m-2 justify-center p-4'>
+          {slots.map((slot, index) => (
+            <li className='bg-gradient-to-r from-red-500 to-red-400 px-2 text-xs rounded text-white shadow-md hover:-translate-y-1 transition-all cursor-pointer' key={index}>{slot}</li>
           ))}
         </ul>
 
