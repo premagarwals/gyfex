@@ -72,6 +72,7 @@ const App = () => {
   }, []);
 
 
+
   //This will be be updated by fetchCoreCourses function, which will run if value of sem is changed
   const [coreCourses, setCoreCourses] = useState([]);
 
@@ -288,6 +289,19 @@ const App = () => {
 
     fetchBreadth();
   }, []);
+
+
+
+  // THIS IS OUR ONE AND ONLY...FILTRATION PROCESSSSSSSSSS
+  //This runs each time slots change or breadths change
+  useEffect(() => {
+    setBreadths(prevSubjects =>
+      prevSubjects.filter(subject => {
+        const subjectSlots = subject.slot.split(",");
+        return !subjectSlots.some(slot => slots.includes(slot));
+      })
+    );
+  }, [slots, breadths]);
 
 
 
