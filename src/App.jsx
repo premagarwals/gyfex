@@ -1,4 +1,5 @@
 import { React, useState, useEffect } from 'react'
+import SubjectCard from './comps/SubjectCard';
 
 const App = () => {
 
@@ -153,7 +154,7 @@ const App = () => {
           const doc = parser.parseFromString(data, 'text/html');
 
           // Parsing the table to get slot data
-          const tableRows = Array.from(doc.querySelectorAll('#disptab tr')).slice(2); 
+          const tableRows = Array.from(doc.querySelectorAll('#disptab tr')).slice(2);
           const newSlots = [];
 
           tableRows.forEach(row => {
@@ -195,6 +196,101 @@ const App = () => {
 
 
 
+  //This will be be set by fetchBreadth function, which will run at start
+  const [breadths, setBreadths] = useState([]); 
+
+  //You go to ERP/Academics/Subjects/Breadth_list_for_current_semester
+  //and you will see multiple breadth there...
+  //This function extracts all subjects from there
+  //////     IMPORTANT NOTE: This fetching should be updated. Subjects should be fetched from registarion portal's options    /////
+  useEffect(() => {
+    async function fetchBreadth() {
+
+      //This part determmines the upcoming semester and session
+      //Why are we doing this? See the bottom 'fetch', whose body param requires session and semester
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+  
+      const session = currentMonth >= 4 ?
+        `${currentYear}-${currentYear + 1}` : 
+        `${currentYear - 1}-${currentYear}`;
+  
+      const semester = (currentMonth >= 4 && currentMonth <= 10) ?
+        'AUTUMN' :
+        'SPRING';
+
+      //This part is actual fetching
+      try {
+        const response = await fetch('https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            session: session,
+            semester: semester,
+          }),
+          credentials: 'include',
+        });
+  
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+  
+        const htmlText = await response.text();
+  
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
+  
+        const table = doc.getElementById('display_tab');
+        const rows = table.querySelectorAll('tr');
+        const subjects = [];
+  
+        for (let i = 1; i < rows.length; i++) {
+          const cells = rows[i].querySelectorAll('td');
+  
+          if (cells.length < 9) continue;
+  
+          const subjectNo = cells[0].textContent.trim();
+          const subjectName = cells[1].textContent.trim();
+          const ltP = cells[2].textContent.trim();
+          const preReq1 = cells[3].textContent.trim();
+          const preReq2 = cells[4].textContent.trim();
+          const preReq3 = cells[5].textContent.trim();
+          const offeredBy = cells[6].textContent.trim();
+          const slot = cells[7].textContent.trim().slice(1, -1);
+          const room = cells[8].textContent.trim();
+  
+          const subject = {
+            id: subjectNo,
+            name: subjectName,
+            ltP: ltP,
+            preRequisites: {
+              preReq1: preReq1,
+              preReq2: preReq2,
+              preReq3: preReq3,
+            },
+            offeredBy: offeredBy,
+            slot: slot,
+            room: room,
+          };
+  
+          subjects.push(subject);
+        }
+  
+        setBreadths(subjects);
+      } catch (error) {
+        console.error('Error fetching or processing data:', error);
+        return [];
+      }
+    }
+
+    fetchBreadth();
+  }, []);
+
+
+
   return (
     <div className="bg-green-100 h-full w-screen relative overflow-x-hidden">
 
@@ -229,6 +325,22 @@ const App = () => {
             <li className='bg-gradient-to-r from-red-500 to-red-400 px-2 text-xs rounded text-white shadow-md hover:-translate-y-1 transition-all cursor-pointer' key={index}>{slot}</li>
           ))}
         </ul>
+
+        {/* Show all the breadth subjects */}
+        {breadths.map((subject) => (
+          <SubjectCard
+            key={subject.id}
+            code={subject.id}
+            name={subject.name}
+            llt={subject.ltP}
+            branch={subject.offeredBy}
+            slot={subject.slot}
+            room={subject.room}
+            pre1={subject.preRequisites.preReq1}
+            pre2={subject.preRequisites.preReq2}
+            pre3={subject.preRequisites.preReq3}
+          />
+        ))}
 
       </div>
     </div>
