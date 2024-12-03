@@ -326,6 +326,10 @@ const App = () => {
           ))}
         </ul>
 
+        {/* Disclaimer and total subject count */}
+        <p className='text-green-400 text-xs font-thin text-center tracking-tight'>Disclaimer: The data displayed is presented as per the records in the ERP system.</p>
+        <h2 className='text-center text-green-500 font-semibold tracking-wide'>You have minimum {breadths.length} options!!!</h2>
+
         {/* Show all the breadth subjects */}
         {breadths.map((subject) => (
           <SubjectCard
