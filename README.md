@@ -15,12 +15,18 @@ GYFEx (Get Your Freakking Elective Extension) is a lightweight, privacy-focused 
 
 ## Installation
 
-### For Chrome Users:
-1. Open CMD/Terminal/Powershell in you working folder, run `git clone https://github.com/premagarwals/gyfex`
-2. Open `chrome://extensions/` in your chrome browser.
+### For Chromium based browsers:
+1. Open CMD/Terminal/Powershell in your working folder, run `git clone https://github.com/premagarwals/gyfex`
+2. Open `chrome://extensions/` in your chrome browser, or, `brave://extensions/` in your brave browser.
 3. Enable "Developer mode" in the top-right corner.
 4. Click on `Load Unpacked` in top-left corner.
 5. Go to the `gyfex/dist` in your working folder, then click select/open.
+
+### For Firefox Users:
+1. Open CMD/Terminal/Powershell in your working folder, run `git clone https://github.com/premagarwals/gyfex`
+2. Open `about:debugging#/runtime/this-firefox` in your Firefox/Zen etc.
+3. Click on `Load Temporary Add-on...` on top.
+4. Go to the `gyfex/dist` in your working folder, then select `manifest.json`.
 ---
 
 ## Usage
