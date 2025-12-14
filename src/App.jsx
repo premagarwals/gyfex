@@ -11,7 +11,13 @@ const App = () => {
 
   // Department selection for fetching subjects
   const [selectedDepartment, setSelectedDepartment] = useState("");
-  const departments = ["CE", "CH", "CS", "EC", "EE", "HS", "IE", "IM", "MA", "ME"];
+  const departments = [
+    "AE", "AF", "AG", "AI", "AP", "AR", "AT", "BE", "BM", "BS", "BT", "CD", "CE", "CH", "CL", "CP",
+    "CR", "CS", "CY", "DE", "DH", "DS", "EA", "EC", "EE", "EF", "EG", "ES", "ET", "EX", "FA", "FH",
+    "FN", "GG", "GS", "HS", "ID", "IE", "IM", "IP", "IS", "IT", "KS", "MA", "MC", "ME", "MF", "MI",
+    "MM", "MS", "MT", "NA", "NT", "PH", "PP", "QD", "QE", "QM", "RD", "RE", "RJ", "RT", "RW", "RX",
+    "SD", "SE", "SH", "SI", "SL", "TE", "TL", "TS", "TV", "UP", "WM"
+  ];
   const [isLoading, setIsLoading] = useState(false);
 
   //You go to ERP/Academics/Students/Your_Academic_Information
