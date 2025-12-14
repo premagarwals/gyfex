@@ -395,6 +395,47 @@ const App = () => {
     setFilteredBreadths(filtered);
   }, [slots, breadths]);
 
+  // Function to download filtered subjects as CSV
+  const downloadCSV = () => {
+    if (filteredBreadths.length === 0) {
+      alert('No subjects to download. Please select a department first.');
+      return;
+    }
+
+    // CSV headers
+    const headers = ['Subject Code', 'Subject Name', 'L-T-P', 'Credits', 'Teacher', 'Slot', 'Prerequisite'];
+
+    // CSV rows
+    const rows = filteredBreadths.map(subject => [
+      subject.id,
+      subject.name,
+      subject.ltP,
+      subject.credits,
+      subject.teacher,
+      subject.slot,
+      subject.preRequisites.preReq1
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${selectedDepartment}_breadth_subjects_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
 
 
   return (
@@ -461,9 +502,19 @@ const App = () => {
             <p className='text-green-600 font-semibold'>Fetching subjects from {selectedDepartment} department...</p>
           </div>
         ) : selectedDepartment ? (
-          <h2 className='text-center text-green-500 font-semibold tracking-wide'>
-            You can take {filteredBreadths.length} out of {breadths.length} {selectedDepartment} courses
-          </h2>
+          <div className='text-center'>
+            <h2 className='text-green-500 font-semibold tracking-wide'>
+              You can take {filteredBreadths.length} out of {breadths.length} {selectedDepartment} courses
+            </h2>
+            {filteredBreadths.length > 0 && (
+              <button
+                onClick={downloadCSV}
+                className='mt-3 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded shadow-lg transition-all hover:scale-105 active:scale-95'
+              >
+                ↓ Download as CSV
+              </button>
+            )}
+          </div>
         ) : (
           <h2 className='text-center text-green-500 font-semibold tracking-wide'>
             Please select a department to view available courses
@@ -481,8 +532,6 @@ const App = () => {
             teacher={subject.teacher}
             slot={subject.slot}
             pre1={subject.preRequisites.preReq1}
-            pre2={subject.preRequisites.preReq2}
-            pre3={subject.preRequisites.preReq3}
           />
         ))}
 

@@ -33,18 +33,10 @@ const SubjectCard = (props) => {
 
       {/* Bottom Section: Prerequisites */}
       <div className='w-full px-3 py-2 bg-gradient-to-r from-green-300 to-green-200 flex items-center gap-2 text-slate-800'>
-        <p className='text-xs font-semibold text-slate-700 whitespace-nowrap'>Prerequisites:</p>
-        <div className='flex gap-2 flex-wrap'>
-          <span className='bg-slate-600 text-green-200 px-2 py-1 rounded text-xs'>
-            {props.pre1 || "None"}
-          </span>
-          <span className='bg-slate-600 text-green-200 px-2 py-1 rounded text-xs'>
-            {props.pre2 || "None"}
-          </span>
-          <span className='bg-slate-600 text-green-200 px-2 py-1 rounded text-xs'>
-            {props.pre3 || "None"}
-          </span>
-        </div>
+        <p className='text-xs font-semibold text-slate-700 whitespace-nowrap'>Prerequisite:</p>
+        <span className='bg-slate-600 text-green-200 px-2 py-1 rounded text-xs'>
+          {props.pre1 || "None"}
+        </span>
       </div>
     </div>
   )
