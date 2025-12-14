@@ -1,14 +1,19 @@
 {
-    "manifest_version": 3,
-    "name": "GYFEx",
-    "version": "1.0",
-    "description": "GYFE for people having trust issues.",
-    "permissions": ["activeTab", "scripting"],
-    "host_permissions": ["https://erp.iitkgp.ac.in/*"],
-    "action": {
-      "default_popup": "index.html"
-    },
-    "content_security_policy": {
-      "extension_pages": "script-src 'self'; object-src 'self'"
-    }
+  "manifest_version": 3,
+  "name": "GYFEx",
+  "version": "1.0",
+  "description": "GYFE for people having trust issues.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://erp.iitkgp.ac.in/*"
+  ],
+  "action": {
+    "default_popup": "index.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
   }
+}

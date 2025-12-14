@@ -9,6 +9,17 @@ const App = () => {
   const [sem, setSem] = useState(0);
   const [dept, setDept] = useState("");
 
+  // Department selection for fetching subjects
+  const [selectedDepartment, setSelectedDepartment] = useState("");
+  const departments = [
+    "AE", "AF", "AG", "AI", "AP", "AR", "AT", "BE", "BM", "BS", "BT", "CD", "CE", "CH", "CL", "CP",
+    "CR", "CS", "CY", "DE", "DH", "DS", "EA", "EC", "EE", "EF", "EG", "ES", "ET", "EX", "FA", "FH",
+    "FN", "GG", "GS", "HS", "ID", "IE", "IM", "IP", "IS", "IT", "KS", "MA", "MC", "ME", "MF", "MI",
+    "MM", "MS", "MT", "NA", "NT", "PH", "PP", "QD", "QE", "QM", "RD", "RE", "RJ", "RT", "RW", "RX",
+    "SD", "SE", "SH", "SI", "SL", "TE", "TL", "TS", "TV", "UP", "WM"
+  ];
+  const [isLoading, setIsLoading] = useState(false);
+
   //You go to ERP/Academics/Students/Your_Academic_Information
   //and you will see your Roll No. and Name there...
   //This function extracts your roll and name from there
@@ -133,17 +144,48 @@ const App = () => {
   //This function also adds the slots clashing with labs using "overlaps"
   useEffect(() => {
     const fetchAndPopulateSlots = async () => {
+      console.log('==================== SLOT FETCHING DEBUG ====================');
+      console.log('Core Courses:', coreCourses);
+
+      if (coreCourses.length === 0) {
+        console.log('No core courses found, skipping slot fetch');
+        console.log('=============================================================');
+        return;
+      }
+
       try {
         const uniquePrefixes = [...new Set(coreCourses.map(code => code.slice(0, 2)))];
+        console.log('Unique department prefixes:', uniquePrefixes);
+
+        // Determine session and semester
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+
+        const session = currentMonth >= 4 ?
+          `${currentYear}-${currentYear + 1}` :
+          `${currentYear - 1}-${currentYear}`;
+
+        const semester = (currentMonth >= 4 && currentMonth <= 10) ?
+          'AUTUMN' :
+          'SPRING';
+
+        console.log(`Session: ${session}, Semester: ${semester}`);
+
         const allSlots = [];
 
         for (const dept of uniquePrefixes) {
+          console.log(`Fetching slots for department: ${dept}`);
           const response = await fetch(`https://erp.iitkgp.ac.in/Acad/timetable_track.jsp?action=second&dept=${dept}`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
+              'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: JSON.stringify({ /* Currently nothing to add here */ }),
+            body: new URLSearchParams({
+              for_session: session,
+              for_semester: semester,
+              dept: dept
+            }),
           });
 
           if (!response.ok) {
@@ -151,28 +193,42 @@ const App = () => {
           }
 
           const data = await response.text();
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(data, 'text/html');
 
-          // Parsing the table to get slot data
-          const tableRows = Array.from(doc.querySelectorAll('#disptab tr')).slice(2);
+          // Parse the malformed HTML using regex to handle missing </tr> tags
+          // Pattern matches: <tr><td>SUBNO</td><td>NAME</td><td>FACULTY</td><td>LTP</td><td>CREDITS</td><td>SLOT</td>
+          const rowMatches = data.matchAll(/<tr><td>([^<]+)<\/td>\s*<td>([^<]+)<\/td>\s*<td>([^<]+)<\/td>\s*<td>([^<]+)<\/td>\s*<td>([^<]+)<\/td>\s*<td>([^<]*)<\/td>/g);
+
           const newSlots = [];
+          let rowCount = 0;
+          const allSubjects = [];
 
-          tableRows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            if (cells.length > 0) {
-              const subjectNo = cells[0]?.textContent.trim();
-              const slotString = cells[5]?.textContent.trim();
+          for (const match of rowMatches) {
+            rowCount++;
+            const subjectNo = match[1].trim();
+            const slotString = match[6].trim();
 
-              if (coreCourses.includes(subjectNo)) {
-                const slotsArray = slotString.split(',');
-                newSlots.push(...slotsArray);
-              }
+            allSubjects.push(subjectNo);
+
+            if (rowCount <= 15) {
+              console.log(`Row ${rowCount}: ${subjectNo} - Slot: ${slotString}`);
             }
-          });
 
+            if (coreCourses.includes(subjectNo)) {
+              console.log(`✓ MATCH! Found core course ${subjectNo} with slots: ${slotString}`);
+              const slotsArray = slotString.split(',').map(s => s.trim());
+              newSlots.push(...slotsArray);
+            }
+          }
+
+          console.log(`Total rows parsed for ${dept}: ${rowCount}`);
+          console.log(`All subjects found:`, allSubjects);
+          console.log(`Looking for core courses:`, coreCourses.filter(c => c.startsWith(dept)));
+          console.log(`Slots found for ${dept}:`, newSlots);
           allSlots.push(...newSlots);
         }
+
+        console.log('All slots before processing:', allSlots);
+
         let optimalSlots = new Set();
         allSlots.forEach(slot => {
           if (slot.length > 2) {
@@ -185,10 +241,15 @@ const App = () => {
             overlaps[slot].forEach(relative => optimalSlots.add(relative));
           }
         });
-        setSlots(Array.from(optimalSlots));
+
+        const finalSlots = Array.from(optimalSlots);
+        console.log('Final clashable slots:', finalSlots);
+        console.log('=============================================================');
+        setSlots(finalSlots);
 
       } catch (error) {
         console.error("Error fetching or processing data:", error);
+        console.log('=============================================================');
       }
     };
 
@@ -197,111 +258,189 @@ const App = () => {
 
 
 
-  //This will be be set by fetchBreadth function, which will run at start
+  //This will be be set by fetchBreadth function, which will run when department is selected
   const [breadths, setBreadths] = useState([]);
 
-  //You go to ERP/Academics/Subjects/Breadth_list_for_current_semester
-  //and you will see multiple breadth there...
-  //This function extracts all subjects from there
-  //////     IMPORTANT NOTE: This fetching should be updated. Subjects should be fetched from registarion portal's options    /////
+  //Fetch subjects from the new department-wise API
+  //This function extracts all subjects from the registration portal
   useEffect(() => {
+    // Only fetch if a department is selected
+    if (!selectedDepartment) {
+      setBreadths([]);
+      setIsLoading(false);
+      return;
+    }
+
     async function fetchBreadth() {
-
-      //This part determmines the upcoming semester and session
-      //Why are we doing this? See the bottom 'fetch', whose body param requires session and semester
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth();
-
-      const session = currentMonth >= 4 ?
-        `${currentYear}-${currentYear + 1}` :
-        `${currentYear - 1}-${currentYear}`;
-
-      const semester = (currentMonth >= 4 && currentMonth <= 10) ?
-        'AUTUMN' :
-        'SPRING';
-
-      //This part is actual fetching
+      setIsLoading(true);
       try {
-        const response = await fetch('https://erp.iitkgp.ac.in/Acad/central_breadth_tt.jsp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+        // Fetch all subjects with pagination
+        let allSubjects = [];
+        let offset = 0;
+        const limit = 100; // Fetch 100 at a time
+        let hasMore = true;
+
+        while (hasMore) {
+          const response = await fetch(
+            `https://erp.iitkgp.ac.in/Academic/getOtherDeptSubjectList.htm?department=${selectedDepartment}&sub_type_code=Breadth&semno=${sem}&subject_status=Normal`,
+            {
+              credentials: "include",
+              headers: {
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0",
+                "Accept": "application/json, text/javascript, */*; q=0.01",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Content-Type": "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+                "Sec-GPC": "1",
+                "Sec-Fetch-Dest": "empty",
+                "Sec-Fetch-Mode": "cors",
+                "Sec-Fetch-Site": "same-origin",
+                "Priority": "u=0"
+              },
+              referrer: "https://erp.iitkgp.ac.in/Academic/subjectRegistrationUGPG.htm",
+              body: JSON.stringify({ order: "asc", limit: limit, offset: offset }),
+              method: "POST",
+              mode: "cors"
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+
+          const data = await response.json();
+
+          if (data.length === 0) {
+            hasMore = false;
+          } else {
+            allSubjects = [...allSubjects, ...data];
+            offset += limit;
+
+            // If we got less than limit, we've reached the end
+            if (data.length < limit) {
+              hasMore = false;
+            }
+          }
+        }
+
+        // Transform the data to match our structure
+        const subjects = allSubjects.map(item => ({
+          id: item.subno,
+          name: item.subname,
+          ltP: item.ltp,
+          credits: item.crd,
+          preRequisites: {
+            preReq1: item.prereq && item.prereq !== "--------" ? item.prereq.split(',')[0]?.trim() || "None" : "None",
+            preReq2: item.prereq && item.prereq !== "--------" ? item.prereq.split(',')[1]?.trim() || "None" : "None",
+            preReq3: item.prereq && item.prereq !== "--------" ? item.prereq.split(',')[2]?.trim() || "None" : "None",
           },
-          body: new URLSearchParams({
-            session: session,
-            semester: semester,
-          }),
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-
-        const htmlText = await response.text();
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlText, 'text/html');
-
-        const table = doc.getElementById('display_tab');
-        const rows = table.querySelectorAll('tr');
-        const subjects = [];
-
-        for (let i = 1; i < rows.length; i++) {
-          const cells = rows[i].querySelectorAll('td');
-
-          if (cells.length < 9) continue;
-
-          const subjectNo = cells[0].textContent.trim();
-          const subjectName = cells[1].textContent.trim();
-          const ltP = cells[2].textContent.trim();
-          const preReq1 = cells[3].textContent.trim();
-          const preReq2 = cells[4].textContent.trim();
-          const preReq3 = cells[5].textContent.trim();
-          const offeredBy = cells[6].textContent.trim();
-          const slot = cells[7].textContent.trim().slice(1, -1);
-          const room = cells[8].textContent.trim();
-
-          const subject = {
-            id: subjectNo,
-            name: subjectName,
-            ltP: ltP,
-            preRequisites: {
-              preReq1: preReq1,
-              preReq2: preReq2,
-              preReq3: preReq3,
-            },
-            offeredBy: offeredBy,
-            slot: slot,
-            room: room,
-          };
-
-          subjects.push(subject);
-        }
+          teacher: item.teacher || "TBA",
+          slot: item.slot,
+          period: item.period || [],
+        }));
 
         setBreadths(subjects);
       } catch (error) {
         console.error('Error fetching or processing data:', error);
-        return [];
+        setBreadths([]);
+      } finally {
+        setIsLoading(false);
       }
     }
 
     fetchBreadth();
-  }, []);
+  }, [selectedDepartment, sem]);
 
+  // Filtered breadths based on slot clashes
+  // This filters out subjects that clash with core course slots
+  const [filteredBreadths, setFilteredBreadths] = useState([]);
 
-
-  // THIS IS OUR ONE AND ONLY...FILTRATION PROCESSSSSSSSSS
-  //This runs each time slots change or breadths change
   useEffect(() => {
-    setBreadths(prevSubjects =>
-      prevSubjects.filter(subject => {
-        const subjectSlots = subject.slot.split(",");
-        return !subjectSlots.some(slot => slots.includes(slot));
-      })
-    );
+    console.log('==================== FILTERING DEBUG ====================');
+    console.log('Core Course Slots (clashable):', slots);
+    console.log('Total breadth subjects fetched:', breadths.length);
+
+    if (breadths.length > 0) {
+      console.log('Sample subject slots:', breadths.slice(0, 5).map(s => ({ name: s.name, slot: s.slot })));
+    }
+
+    const filtered = breadths.filter(subject => {
+      if (!subject.slot) {
+        console.log('Subject has no slot, keeping it:', subject.name);
+        return true;
+      }
+
+      const subjectSlots = subject.slot.split(",").map(s => s.trim());
+
+      // Check if any subject slot clashes with core course slots
+      // Compare first 2 characters of each slot
+      const hasClash = subjectSlots.some(subSlot => {
+        // Normalize both to first 2 characters for comparison
+        const normalizedSubSlot = subSlot.substring(0, 2);
+
+        // Check if any core slot matches (comparing first 2 chars)
+        const clashFound = slots.some(coreSlot => {
+          const normalizedCoreSlot = coreSlot.substring(0, 2);
+          return normalizedSubSlot === normalizedCoreSlot;
+        });
+
+        return clashFound;
+      });
+
+      if (hasClash) {
+        console.log(`CLASH FOUND: "${subject.name}" (${subject.id}) - Slots: ${subject.slot}`);
+      }
+
+      return !hasClash;
+    });
+
+    console.log('Filtered breadths (non-clashing):', filtered.length);
+    console.log('Clashing subjects removed:', breadths.length - filtered.length);
+    console.log('=========================================================');
+
+    setFilteredBreadths(filtered);
   }, [slots, breadths]);
+
+  // Function to download filtered subjects as CSV
+  const downloadCSV = () => {
+    if (filteredBreadths.length === 0) {
+      alert('No subjects to download. Please select a department first.');
+      return;
+    }
+
+    // CSV headers
+    const headers = ['Subject Code', 'Subject Name', 'L-T-P', 'Credits', 'Teacher', 'Slot', 'Prerequisite'];
+
+    // CSV rows
+    const rows = filteredBreadths.map(subject => [
+      subject.id,
+      subject.name,
+      subject.ltP,
+      subject.credits,
+      subject.teacher,
+      subject.slot,
+      subject.preRequisites.preReq1
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${selectedDepartment}_breadth_subjects_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
 
 
@@ -331,6 +470,26 @@ const App = () => {
           ))}
         </ul>
 
+        {/* Department Selection Dropdown */}
+        <div className="mb-6 mt-8 flex flex-col items-center">
+          <label htmlFor="dept-select" className="text-slate-600 text-sm font-semibold mb-2">
+            Select Department to Fetch Subjects:
+          </label>
+          <select
+            id="dept-select"
+            value={selectedDepartment}
+            onChange={(e) => setSelectedDepartment(e.target.value)}
+            className="bg-green-200 text-slate-700 font-semibold px-4 py-2 rounded border-2 border-green-400 hover:bg-green-300 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="">-- Choose a Department --</option>
+            {departments.map((deptCode) => (
+              <option key={deptCode} value={deptCode}>
+                {deptCode}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Show clashable slots */}
         <p className='text-slate-600 text-sm mt-3 font-semibold text-center'>Potentially Clashable Slots:</p>
         <p className='text-green-400 text-xs font-semibold text-center tracking-tight'>(As per ERP)</p>
@@ -342,21 +501,43 @@ const App = () => {
 
         {/* Disclaimer and total subject count */}
         <p className='text-green-400 text-xs font-thin text-center tracking-tight'>Disclaimer: The data displayed is presented as per the records in the ERP system.</p>
-        <h2 className='text-center text-green-500 font-semibold tracking-wide'>You have minimum {breadths.length} options!!!</h2>
+
+        {isLoading ? (
+          <div className='text-center py-8'>
+            <div className='inline-block animate-spin rounded-full h-12 w-12 border-4 border-green-400 border-t-green-600 mb-4'></div>
+            <p className='text-green-600 font-semibold'>Fetching subjects from {selectedDepartment} department...</p>
+          </div>
+        ) : selectedDepartment ? (
+          <div className='text-center'>
+            <h2 className='text-green-500 font-semibold tracking-wide'>
+              You can take {filteredBreadths.length} out of {breadths.length} {selectedDepartment} courses
+            </h2>
+            {filteredBreadths.length > 0 && (
+              <button
+                onClick={downloadCSV}
+                className='mt-3 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded shadow-lg transition-all hover:scale-105 active:scale-95'
+              >
+                ↓ Download as CSV
+              </button>
+            )}
+          </div>
+        ) : (
+          <h2 className='text-center text-green-500 font-semibold tracking-wide'>
+            Please select a department to view available courses
+          </h2>
+        )}
 
         {/* Show all the breadth subjects */}
-        {breadths.map((subject) => (
+        {!isLoading && filteredBreadths.map((subject) => (
           <SubjectCard
             key={subject.id}
             code={subject.id}
             name={subject.name}
             llt={subject.ltP}
-            branch={subject.offeredBy}
+            credits={subject.credits}
+            teacher={subject.teacher}
             slot={subject.slot}
-            room={subject.room}
             pre1={subject.preRequisites.preReq1}
-            pre2={subject.preRequisites.preReq2}
-            pre3={subject.preRequisites.preReq3}
           />
         ))}
 
