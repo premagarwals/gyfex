@@ -18,6 +18,11 @@ const App = () => {
     "MM", "MS", "MT", "NA", "NT", "PH", "PP", "QD", "QE", "QM", "RD", "RE", "RJ", "RT", "RW", "RX",
     "SD", "SE", "SH", "SI", "SL", "TE", "TL", "TS", "TV", "UP", "WM"
   ];
+
+  // Subject type selection (Depth, Breadth, Additional)
+  const [subjectType, setSubjectType] = useState("Breadth");
+  const subjectTypes = ["Depth", "Breadth", "Additional"];
+
   const [isLoading, setIsLoading] = useState(false);
 
   //You go to ERP/Academics/Students/Your_Academic_Information
@@ -277,12 +282,12 @@ const App = () => {
         // Fetch all subjects with pagination
         let allSubjects = [];
         let offset = 0;
-        const limit = 100; // Fetch 100 at a time
+        const limit = 300; // Fetch 300 at a time
         let hasMore = true;
 
         while (hasMore) {
           const response = await fetch(
-            `https://erp.iitkgp.ac.in/Academic/getOtherDeptSubjectList.htm?department=${selectedDepartment}&sub_type_code=Breadth&semno=${sem}&subject_status=Normal`,
+            `https://erp.iitkgp.ac.in/Academic/getOtherDeptSubjectList.htm?department=${selectedDepartment}&sub_type_code=${subjectType}&semno=${sem}&subject_status=Normal`,
             {
               credentials: "include",
               headers: {
@@ -349,7 +354,7 @@ const App = () => {
     }
 
     fetchBreadth();
-  }, [selectedDepartment, sem]);
+  }, [selectedDepartment, sem, subjectType]);
 
   // Filtered breadths based on slot clashes
   // This filters out subjects that clash with core course slots
@@ -433,8 +438,18 @@ const App = () => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
 
+    // Determine session and semester for filename
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const session = currentMonth >= 4 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
+    const semester = (currentMonth >= 4 && currentMonth <= 10) ? 'AUTUMN' : 'SPRING';
+
+    // Format: SubjectType_SEMESTER_SESSION_DEPT_ROLLNO_gyfex.csv
+    const filename = `${subjectType}_${semester}_${session}_${selectedDepartment}_${rollNo}_gyfex.csv`;
+
     link.setAttribute('href', url);
-    link.setAttribute('download', `${selectedDepartment}_breadth_subjects_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', filename);
     link.style.visibility = 'hidden';
 
     document.body.appendChild(link);
@@ -488,6 +503,27 @@ const App = () => {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Subject Type Selection (Depth/Breadth/Additional) */}
+        <div className="mb-6 flex flex-col items-center">
+          <label className="text-slate-600 text-sm font-semibold mb-3">
+            Select Subject Type:
+          </label>
+          <div className="flex gap-4">
+            {subjectTypes.map((type) => (
+              <button
+                key={type}
+                onClick={() => setSubjectType(type)}
+                className={`px-6 py-2 rounded font-semibold transition-all ${subjectType === type
+                  ? 'bg-green-500 text-white shadow-lg scale-105'
+                  : 'bg-green-200 text-slate-700 hover:bg-green-300'
+                  }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Show clashable slots */}
